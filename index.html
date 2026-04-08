@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>UltimateScorer Pro v7</title>
+  <title>UltimateScorer Pro v8</title>
   <style>
     :root {
       --system-bg: #F2F2F7;
@@ -17,7 +17,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background-color: var(--system-bg); color: var(--label-primary); overflow-x: hidden; }
     
-    /* 導覽列 */
     .nav-bar { position: sticky; top: 0; z-index: 100; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border-bottom: 0.5px solid var(--border-color); padding: 12px 20px; }
     .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .nav-title-group { display: flex; flex-direction: column; }
@@ -35,12 +34,19 @@
     .card { background: var(--secondary-bg); border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
     .score-num { font-size: 40px; font-weight: 800; tabular-nums; }
     .custom-input, .custom-select { width: 100%; padding: 12px; border-radius: 12px; background: #F2F2F7; border: 1px solid transparent; font-size: 15px; margin-bottom: 10px; appearance: none; }
-    .btn-action { width: 100%; border: none; padding: 16px; border-radius: 14px; background: var(--accent-blue); color: white; font-size: 17px; font-weight: 700; cursor: pointer; }
     
+    .btn-group { display: flex; gap: 10px; }
+    .btn-action { flex: 3; border: none; padding: 16px; border-radius: 14px; background: var(--accent-blue); color: white; font-size: 17px; font-weight: 700; cursor: pointer; }
+    .btn-undo { flex: 1; border: none; padding: 16px; border-radius: 14px; background: #E3E3E6; color: var(--label-secondary); font-size: 14px; font-weight: 600; cursor: pointer; }
+
     .line-picker { display: flex; gap: 8px; margin-bottom: 12px; }
     .line-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 12px; font-weight: 600; background: white; }
     .line-btn.active.o { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
     .line-btn.active.d { background: var(--accent-red); color: white; border-color: var(--accent-red); }
+
+    .log-item { position: relative; display: flex; align-items: center; justify-content: space-between; }
+    .log-actions { display: flex; gap: 12px; }
+    .icon-btn { border: none; background: none; cursor: pointer; font-size: 18px; padding: 5px; color: #8E8E93; }
 
     #sankey-container { width: 100%; background: white; border-radius: 16px; padding: 20px 10px; overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     svg { display: block; margin: 0 auto; }
@@ -74,6 +80,7 @@
       </div>
     </div>
   </div>
+
   <div class="card">
     <div class="line-picker">
       <button class="line-btn active o" id="line-o" onclick="setL('O')">O-Line</button>
@@ -82,7 +89,10 @@
     <select class="custom-select" id="sel-p"><option value="">組織者 (Hockey)</option></select>
     <select class="custom-select" id="sel-a"><option value="">助攻者 (Assist)</option></select>
     <select class="custom-select" id="sel-s"><option value="">得分者 (Scorer)</option></select>
-    <button class="btn-action" id="main-btn" onclick="rec()">確認得分</button>
+    <div class="btn-group">
+      <button class="btn-undo" onclick="undo()">UNDO</button>
+      <button class="btn-action" id="main-btn" onclick="rec()">確認得分</button>
+    </div>
   </div>
   <div id="log"></div>
 </div>
@@ -90,15 +100,13 @@
 <div id="roster-screen" class="screen">
   <div class="card">
     <div style="font-size:13px; font-weight:700; margin-bottom:12px;">比賽設定</div>
-    <input id="in-match" type="text" class="custom-input" placeholder="輸入比賽名稱 (如：SSSA 決賽)..." oninput="updateMeta()">
+    <input id="in-match" type="text" class="custom-input" placeholder="輸入比賽名稱...">
     <input id="in-team" type="text" class="custom-input" placeholder="輸入隊伍名稱..." oninput="updateMeta()">
   </div>
-
   <div class="card">
-    <div style="font-size:13px; font-weight:700; margin-bottom:12px;">球員名單</div>
     <div id="p-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px"></div>
     <div style="display:flex; gap:8px">
-      <input id="p-in" type="text" class="custom-input" style="flex:1; margin-bottom:0" placeholder="新球員姓名...">
+      <input id="p-in" type="text" class="custom-input" style="flex:1; margin-bottom:0" placeholder="新球員...">
       <button onclick="addP()" style="background:var(--accent-blue); color:white; border:none; padding:10px 20px; border-radius:12px; font-weight:600">新增</button>
     </div>
   </div>
@@ -114,15 +122,10 @@ let players = ['Max', 'Rich', '建偉', '阿志', '小雯', '欣怡'];
 let points = [];
 let opp = 0, line = 'O';
 
-// 無限跳色算法：基於 HSL 色相旋轉，確保每個名字都有獨特顏色
 function getPColor(name) {
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  // 使用 HSL 色彩模型，飽和度與亮度固定，只旋轉色相 (Hue)
-  const h = Math.abs(hash) % 360;
-  return `hsl(${h}, 70%, 45%)`; 
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return `hsl(${Math.abs(hash) % 360}, 70%, 45%)`; 
 }
 
 function showTab(t, b) {
@@ -134,10 +137,8 @@ function showTab(t, b) {
 }
 
 function updateMeta() {
-  const m = document.getElementById('in-match').value;
-  const t = document.getElementById('in-team').value;
-  document.getElementById('display-match').innerText = m || "UltimateScorer Pro";
-  document.getElementById('display-team').innerText = t || "SSSA 2026 賽季";
+  document.getElementById('display-match').innerText = document.getElementById('in-match').value || "UltimateScorer Pro";
+  document.getElementById('display-team').innerText = document.getElementById('in-team').value || "SSSA 2026 賽季";
 }
 
 function setL(l) { 
@@ -165,34 +166,68 @@ function rec() {
   const p = document.getElementById('sel-p').value, a = document.getElementById('sel-a').value, s = document.getElementById('sel-s').value;
   if(!s) return alert("請記錄得分者");
   points.push({l: line, p: p||'無', a: a||'無', s: s, t: new Date().toLocaleTimeString()});
+  updateDisplay();
+}
+
+function undo() {
+  if (points.length === 0) return;
+  if (confirm("確定要撤銷最後一筆記錄嗎？")) {
+    points.pop();
+    updateDisplay();
+  }
+}
+
+function del(i) {
+  if (confirm("確定要刪除這筆得分嗎？")) {
+    points.splice(i, 1);
+    updateDisplay();
+  }
+}
+
+function edit(i) {
+  const pt = points[i];
+  setL(pt.l);
+  document.getElementById('sel-p').value = pt.p === '無' ? '' : pt.p;
+  document.getElementById('sel-a').value = pt.a === '無' ? '' : pt.a;
+  document.getElementById('sel-s').value = pt.s;
+  points.splice(i, 1);
+  updateDisplay();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateDisplay() {
   document.getElementById('us-score').innerText = points.length;
   ['sel-p', 'sel-a', 'sel-s'].forEach(id => document.getElementById(id).value = "");
   render();
 }
 
 function render() {
-  document.getElementById('log').innerHTML = points.slice().reverse().map((pt, i) => `
-    <div class="card" style="padding:10px; margin-bottom:8px; border-left:4px solid ${pt.l==='O'?'#007AFF':'#FF3B30'}">
-      <div style="font-weight:700; font-size:14px">${pt.s} 得分 <small style="color:#999">[${pt.l}-Line]</small></div>
-      <div style="font-size:11px; color:#666">${pt.p} > ${pt.a} > ${pt.s}</div>
-    </div>`).join('');
+  document.getElementById('log').innerHTML = points.slice().reverse().map((pt, ri) => {
+    const i = points.length - 1 - ri;
+    return `
+    <div class="card log-item" style="border-left:4px solid ${pt.l==='O'?'#007AFF':'#FF3B30'}">
+      <div>
+        <div style="font-weight:700; font-size:14px">${pt.s} 得分 <small style="color:#999">[${pt.l}-Line]</small></div>
+        <div style="font-size:11px; color:#666">${pt.p} > ${pt.a} > ${pt.s}</div>
+      </div>
+      <div class="log-actions">
+        <button class="icon-btn" onclick="edit(${i})">✏️</button>
+        <button class="icon-btn" onclick="del(${i})" style="color:var(--accent-red)">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function addP() { 
   const i = document.getElementById('p-in'); 
   if(i.value && !players.includes(i.value)){ 
-    players.push(i.value); 
-    i.value=''; 
-    renP(); 
-    pop(); 
+    players.push(i.value); i.value=''; renP(); pop(); 
   } 
 }
 
 function renP() { 
   document.getElementById('p-list').innerHTML = players.map(p => `
-    <div style="background:${getPColor(p)}; color:white; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600">
-      ${p}
-    </div>`).join(''); 
+    <div style="background:${getPColor(p)}; color:white; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600">${p}</div>`).join(''); 
 }
 
 function dl() {
@@ -205,55 +240,38 @@ function dl() {
 function draw() {
   const svg = document.getElementById('sankey-svg');
   if(!points.length) return svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle">尚無數據</text>';
-  
   const links = {}, sC = {}, aC = {}, pC = {};
   points.forEach(pt => {
     sC[pt.s] = (sC[pt.s]||0)+1;
-    if(pt.p!=='無' && pt.a!=='無') { const k=`pa|${pt.p}|${pt.a}`; links[k]=(links[k]||0)+1; }
-    if(pt.a!=='無') { const k=`as|${pt.a}|${pt.s}`; links[k]=(links[k]||0)+1; aC[pt.a]=(aC[pt.a]||0)+1; }
+    if(pt.p!=='無' && pt.a!=='無') links[`pa|${pt.p}|${pt.a}`] = (links[`pa|${pt.p}|${pt.a}`]||0)+1;
+    if(pt.a!=='無') { links[`as|${pt.a}|${pt.s}`] = (links[`as|${pt.a}|${pt.s}`]||0)+1; aC[pt.a]=(aC[pt.a]||0)+1; }
     if(pt.p!=='無') pC[pt.p]=(pC[pt.p]||0)+1;
-    if(pt.p!=='無' && pt.a==='無') { const k=`pa|${pt.p}|${pt.s}`; links[k]=(links[k]||0)+1; }
+    if(pt.p!=='無' && pt.a==='無') links[`pa|${pt.p}|${pt.s}`] = (links[`pa|${pt.p}|${pt.s}`]||0)+1;
   });
-
-  const pSet = [...new Set(points.filter(x=>x.p!=='無').map(x=>x.p))],
-        aSet = [...new Set(points.filter(x=>x.a!=='無').map(x=>x.a))],
-        sSet = [...new Set(points.map(x=>x.s))];
+  const pSet = [...new Set(points.filter(x=>x.p!=='無').map(x=>x.p))], aSet = [...new Set(points.filter(x=>x.a!=='無').map(x=>x.a))], sSet = [...new Set(points.map(x=>x.s))];
   const cols = [{n:pSet, l:'組織', m:pC}, {n:aSet, l:'助攻', m:aC}, {n:sSet, l:'得分', m:sC}];
-  
   const w = document.getElementById('sankey-container').clientWidth, nW = 85, gap = 15, top = 40, h = top + Math.max(pSet.length, aSet.length, sSet.length) * (45 + gap) + 20;
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`); svg.setAttribute('width', w); svg.setAttribute('height', h);
-
   const pos = {};
   cols.forEach((c, ci) => c.n.forEach((n, ni) => pos[ci+'|'+n] = {x: 10 + ci*(w-nW-20)/2, y: top + ni*(45+gap)}));
-
   let htm = '';
-  // 繪製連線：統一淺灰色
   Object.entries(links).forEach(([k, v]) => {
     const [type, f, t] = k.split('|'), fC = type==='pa'?0:1, tC = type==='pa'?1:2, fp = pos[fC+'|'+f], tp = pos[tC+'|'+t];
     if(fp && tp) {
       const x1 = fp.x+nW, y1 = fp.y+22.5, x2 = tp.x, y2 = tp.y+22.5;
-      const strokeW = 1 + (v * 4.5);
-      htm += `<path d="M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}" fill="none" stroke="#D1D1D6" stroke-width="${strokeW}" stroke-opacity="0.4"/>`;
+      htm += `<path d="M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}" fill="none" stroke="#D1D1D6" stroke-width="${1+v*4.5}" stroke-opacity="0.4"/>`;
       htm += `<text x="${(x1+x2)/2}" y="${(y1+y2)/2 - 5}" text-anchor="middle" font-size="11" font-weight="bold" fill="#8E8E93">${v}</text>`;
     }
   });
-
-  // 繪製節點：顏色與名單頁同步
   cols.forEach((c, ci) => {
     htm += `<text x="${10+ci*(w-nW-20)/2+nW/2}" y="20" text-anchor="middle" font-size="11" font-weight="800" fill="#8E8E93">${c.l}</text>`;
     c.n.forEach(n => {
       const p = pos[ci+'|'+n], color = getPColor(n), count = c.m[n] || 0;
-      htm += `
-        <g>
-          <rect x="${p.x}" y="${p.y}" width="${nW}" height="45" rx="10" fill="white" stroke="${color}" stroke-width="2.5"/>
-          <text x="${p.x+nW/2}" y="${p.y+20}" text-anchor="middle" font-size="12" font-weight="800" fill="${color}">${n}</text>
-          <text x="${p.x+nW/2}" y="${p.y+36}" text-anchor="middle" font-size="10" font-weight="700" fill="${color}" opacity="0.8">${count} 次</text>
-        </g>`;
+      htm += `<g><rect x="${p.x}" y="${p.y}" width="${nW}" height="45" rx="10" fill="white" stroke="${color}" stroke-width="2.5"/><text x="${p.x+nW/2}" y="${p.y+20}" text-anchor="middle" font-size="12" font-weight="800" fill="${color}">${n}</text><text x="${p.x+nW/2}" y="${p.y+36}" text-anchor="middle" font-size="10" font-weight="700" fill="${color}" opacity="0.8">${count} 次</text></g>`;
     });
   });
   svg.innerHTML = htm;
 }
-
 renP(); pop();
 </script>
 </body>
