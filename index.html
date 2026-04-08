@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>UltimateScorer Pro</title>
+  <style>
+    :root {
+      --system-bg: #F2F2F7;
+      --secondary-bg: #FFFFFF;
+      --label-primary: #000000;
+      --label-secondary: #3C3C43;
+      --label-tertiary: #3C3C4399;
+      --accent-blue: #007AFF;
+      --accent-green: #34C759;
+      --accent-orange: #FF9500;
+      --accent-red: #FF3B30;
+      --border-color: #C6C6C8;
+      --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background-color: var(--system-bg); color: var(--label-primary); line-height: 1.4; }
+
+    /* 導航列 */
+    .nav-bar { position: sticky; top: 0; z-index: 100; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 0.5px solid var(--border-color); padding: 12px 20px; }
+    .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .nav-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    
+    .segmented-control { background: #E3E3E6; border-radius: 9px; padding: 2px; display: flex; }
+    .segment-btn { flex: 1; border: none; padding: 7px; font-size: 13px; font-weight: 600; border-radius: 7px; background: transparent; cursor: pointer; color: var(--label-secondary); }
+    .segment-btn.active { background: white; color: var(--label-primary); box-shadow: 0 2px 4px rgba(0,0,0,0.12); }
+
+    .screen { display: none; padding: 16px; animation: fadeIn 0.3s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .card { background: var(--secondary-bg); border-radius: 16px; padding: 20px; box-shadow: var(--card-shadow); margin-bottom: 16px; }
+    .score-num { font-size: 44px; font-weight: 800; tabular-nums; }
+
+    /* 輸入區域 */
+    .custom-select { width: 100%; padding: 12px; border-radius: 12px; background: #F2F2F7; border: 1px solid transparent; font-size: 15px; margin-bottom: 12px; appearance: none; }
+    .btn-action { width: 100%; border: none; padding: 16px; border-radius: 14px; background: var(--accent-blue); color: white; font-size: 17px; font-weight: 700; cursor: pointer; }
+    .btn-export { background: #FFFFFF; color: var(--accent-blue); border: 1px solid var(--accent-blue); padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 10px; width: 100%; }
+
+    /* 統計 */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .stat-item { background: white; padding: 12px; border-radius: 12px; text-align: center; box-shadow: var(--card-shadow); }
+    .stat-v { font-size: 18px; font-weight: 800; color: var(--accent-blue); display: block; }
+
+    /* 圖表容器 - 關鍵修復：處理溢出 */
+    #sankey-container { 
+      width: 100%; 
+      background: white; 
+      border-radius: 16px; 
+      padding: 15px 5px; 
+      box-shadow: var(--card-shadow);
+      overflow-x: auto; /* 若螢幕太窄允許橫向滾動 */
+    }
+    #sankey-svg { display: block; margin: 0 auto; }
+  </style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <div class="nav-header">
+    <div class="nav-title">UltimateScorer</div>
+    <div id="match-display" style="font-size:12px; color:var(--label-tertiary)">新比賽</div>
+  </div>
+  <div class="segmented-control">
+    <button class="segment-btn active" onclick="showTab('record', this)">記分</button>
+    <button class="segment-btn" onclick="showTab('roster', this)">球員</button>
+    <button class="segment-btn" onclick="showTab('sankey', this)">分析</button>
+  </div>
+</div>
+
+<div id="record-screen" class="screen active">
+  <div class="card" style="display:flex; justify-content:space-around; align-items:center; text-align:center;">
+    <div><div style="font-size:12px; color:var(--label-tertiary)">我方</div><div class="score-num" id="us-score">0</div></div>
+    <div style="color:var(--border-color); font-size:24px;">:</div>
+    <div>
+      <div style="font-size:12px; color:var(--label-tertiary)">對方</div><div class="score-num" id="opp-score">0</div>
+      <div style="display:flex; gap:8px; margin-top:5px;">
+        <button onclick="adjustOpp(-1)" style="padding:4px 12px; border-radius:6px; border:1px solid #DDD; background:none;">-</button>
+        <button onclick="adjustOpp(1)" style="padding:4px 12px; border-radius:6px; border:1px solid #DDD; background:none;">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <select class="custom-select" id="sel-passer"><option value="">選擇組織者 (Passer)</option></select>
+    <select class="custom-select" id="sel-assist"><option value="">選擇助攻者 (Assist)</option></select>
+    <select class="custom-select" id="sel-scorer"><option value="">選擇得分者 (Scorer)</option></select>
+    <button class="btn-action" onclick="recordPoint()">記錄得分 +</button>
+  </div>
+  <div id="point-log"></div>
+</div>
+
+<div id="roster-screen" class="screen">
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; margin-bottom:10px;">球員名單</div>
+    <div id="player-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;"></div>
+    <div style="display:flex; gap:8px;">
+      <input id="player-input" type="text" style="flex:1; padding:10px; border-radius:10px; border:1px solid #DDD" placeholder="新球員...">
+      <button onclick="addPlayer()" style="background:var(--accent-blue); color:white; border:none; padding:10px 20px; border-radius:10px; font-weight:600">新增</button>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:13px; font-weight:700; margin-bottom:10px;">比賽資訊</div>
+    <input id="match-name-input" oninput="updateMatch()" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid #DDD" placeholder="比賽名稱...">
+  </div>
+</div>
+
+<div id="sankey-screen" class="screen">
+  <div class="stats-grid">
+    <div class="stat-item"><span class="stat-v" id="stat-total">0</span><span style="font-size:11px; color:var(--label-tertiary)">總得分</span></div>
+    <div class="stat-item"><span class="stat-v" id="stat-top-scorer" style="font-size:13px">—</span><span style="font-size:11px; color:var(--label-tertiary)">得分王</span></div>
+    <div class="stat-item"><span class="stat-v" id="stat-top-assist" style="font-size:13px">—</span><span style="font-size:11px; color:var(--label-tertiary)">助攻王</span></div>
+  </div>
+  
+  <div id="sankey-container">
+    <svg id="sankey-svg"></svg>
+  </div>
+  
+  <button class="btn-export" onclick="exportToCSV()">📊 導出數據為 Excel (CSV)</button>
+</div>
+
+<script>
+let players = ['阿志', '建偉', '小雯', '大哲', '欣怡', '宗翰', '雅婷'];
+let points = [];
+let oppScore = 0;
+
+function showTab(tab, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tab + '-screen').classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'sankey') drawSankey();
+  if (tab === 'record') renderLog();
+}
+
+function updateMatch() { document.getElementById('match-display').textContent = document.getElementById('match-name-input').value || '新比賽'; }
+function adjustOpp(d) { oppScore = Math.max(0, oppScore + d); document.getElementById('opp-score').textContent = oppScore; }
+
+function populateSelects() {
+  ['sel-passer', 'sel-assist', 'sel-scorer'].forEach(id => {
+    const sel = document.getElementById(id);
+    const val = sel.value;
+    sel.innerHTML = `<option value="">${sel.options[0].text}</option>`;
+    players.forEach(p => { const opt = document.createElement('option'); opt.value = p; opt.textContent = p; if(p===val) opt.selected=true; sel.appendChild(opt); });
+  });
+}
+
+function recordPoint() {
+  const p = document.getElementById('sel-passer').value, a = document.getElementById('sel-assist').value, s = document.getElementById('sel-scorer').value;
+  if (!s) return alert("必須填寫得分者");
+  points.push({ passer: p, assist: a, scorer: s, timestamp: new Date().toLocaleTimeString() });
+  document.getElementById('us-score').textContent = points.length;
+  ['sel-passer', 'sel-assist', 'sel-scorer'].forEach(id => document.getElementById(id).value = "");
+  renderLog();
+}
+
+function renderLog() {
+  const log = document.getElementById('point-log');
+  log.innerHTML = points.slice().reverse().map((pt, i) => `
+    <div class="card" style="padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+      <div><div style="font-weight:700">${pt.scorer} 得分</div><div style="font-size:11px; color:#999">${[pt.passer, pt.assist, pt.scorer].filter(Boolean).join(' → ')}</div></div>
+      <div onclick="deletePoint(${points.length-1-i})" style="color:var(--accent-red); font-weight:700; padding:10px;">×</div>
+    </div>`).join('');
+}
+
+function deletePoint(i) { points.splice(i, 1); document.getElementById('us-score').textContent = points.length; renderLog(); }
+function addPlayer() { const inp = document.getElementById('player-input'); if(inp.value && !players.includes(inp.value)){ players.push(inp.value); inp.value=''; renderRoster(); populateSelects(); } }
+function removePlayer(n) { players = players.filter(p => p!==n); renderRoster(); populateSelects(); }
+function renderRoster() { document.getElementById('player-list').innerHTML = players.map(p => `<div style="background:#E3E3E8; padding:5px 12px; border-radius:20px; font-size:13px">${p} <span onclick="removePlayer('${p}')" style="margin-left:5px; color:#888">×</span></div>`).join(''); }
+
+// 數據導出功能
+function exportToCSV() {
+  if (points.length === 0) return alert("尚無數據可導出");
+  let csv = "\uFEFF時間,組織者,助攻者,得分者\n";
+  points.forEach(p => {
+    csv += `${p.timestamp},${p.passer || '-'},${p.assist || '-'},${p.scorer}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", `飛盤比賽數據_${new Date().toLocaleDateString()}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// 桑基圖修復與繪製
+function drawSankey() {
+  const svg = document.getElementById('sankey-svg');
+  if (!points.length) { svg.style.display = 'none'; return; }
+  svg.style.display = 'block';
+
+  const sC = {}, aC = {}, pC = {}, links = {};
+  points.forEach(pt => {
+    if (pt.scorer) sC[pt.scorer] = (sC[pt.scorer]||0)+1;
+    if (pt.assist) aC[pt.assist] = (aC[pt.assist]||0)+1;
+    if (pt.passer) pC[pt.passer] = (pC[pt.passer]||0)+1;
+    if (pt.passer && pt.assist) { const k=`pa|${pt.passer}|${pt.assist}`; links[k]=(links[k]||0)+1; }
+    else if (pt.passer && pt.scorer && !pt.assist) { const k=`pa|${pt.passer}|${pt.scorer}`; links[k]=(links[k]||0)+1; }
+    if (pt.assist && pt.scorer) { const k=`as|${pt.assist}|${pt.scorer}`; links[k]=(links[k]||0)+1; }
+  });
+
+  document.getElementById('stat-total').textContent = points.length;
+  const topS = Object.entries(sC).sort((a,b)=>b[1]-a[1])[0];
+  const topA = Object.entries(aC).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('stat-top-scorer').textContent = topS ? `${topS[0]}(${topS[1]})` : '—';
+  document.getElementById('stat-top-assist').textContent = topA ? `${topA[0]}(${topA[1]})` : '—';
+
+  const appleColors = ['#007AFF', '#34C759', '#FF9500', '#AF52DE', '#FF3B30'];
+  const getColor = (n) => appleColors[n.length % appleColors.length];
+
+  const pSet = [...new Set(points.filter(p=>p.passer).map(p=>p.passer))];
+  const aSet = [...new Set(points.filter(p=>p.assist).map(p=>p.assist))];
+  const sSet = [...new Set(points.map(p=>p.scorer))];
+  const cols = [{n:pSet, l:'組織', m:pC}, {n:aSet, l:'助攻', m:aC}, {n:sSet, l:'得分', m:sC}];
+
+  // 關鍵計算優化：縮小節點寬度並增加左右邊距，防止溢出
+  const containerW = document.getElementById('sankey-container').clientWidth;
+  const nodeW = 75; // 稍微縮小方塊寬度
+  const sidePadding = 10;
+  const availableW = containerW - (sidePadding * 2);
+  const NODE_H = 40, GAP = 15, TOP = 40;
+  const H = TOP + Math.max(...cols.map(c=>c.n.length)) * (NODE_H + GAP) + 30;
+
+  svg.setAttribute('viewBox', `0 0 ${containerW} ${H}`);
+  svg.setAttribute('width', containerW);
+  svg.setAttribute('height', H);
+
+  const nodePos = {};
+  cols.forEach((col, ci) => col.n.forEach((name, ni) => {
+    // 使用 ci * (availableW - nodeW) / 2 來精確計算 X 座標
+    nodePos[ci+'|'+name] = { x: sidePadding + ci * (availableW - nodeW) / 2, y: TOP + ni * (NODE_H + GAP) };
+  }));
+
+  let html = '';
+  // 畫線
+  Object.entries(links).forEach(([k, v]) => {
+    const [l, f, t] = k.split('|'), fC = l==='pa'?0:1, tC = l==='pa'?1:2;
+    const fp = nodePos[fC+'|'+f], tp = nodePos[tC+'|'+t];
+    if(!fp || !tp) return;
+    const x1 = fp.x + nodeW, y1 = fp.y + NODE_H/2, x2 = tp.x, y2 = tp.y + NODE_H/2;
+    const sw = 1 + (v * 3), c = getColor(f);
+    html += `<path d="M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}" fill="none" stroke="${c}" stroke-width="${sw}" stroke-opacity="0.15"/>`;
+    if(v > 1) html += `<text x="${(x1+x2)/2}" y="${(y1+y2)/2 - 4}" text-anchor="middle" font-size="9" font-weight="bold" fill="${c}">${v}</text>`;
+  });
+
+  // 畫方塊
+  cols.forEach((col, ci) => {
+    html += `<text x="${sidePadding + ci*(availableW-nodeW)/2 + nodeW/2}" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#8E8E93">${col.l}</text>`;
+    col.n.forEach(name => {
+      const p = nodePos[ci+'|'+name], c = getColor(name), count = col.m[name] || 0;
+      html += `
+        <g>
+          <rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${NODE_H}" rx="8" fill="white" stroke="${c}" stroke-width="1"/>
+          <text x="${p.x+nodeW/2}" y="${p.y+18}" text-anchor="middle" font-size="11" font-weight="700" fill="#1C1C1E">${name}</text>
+          <text x="${p.x+nodeW/2}" y="${p.y+32}" text-anchor="middle" font-size="8" font-weight="600" fill="${c}" opacity="0.8">${count}次${col.l}</text>
+        </g>`;
+    });
+  });
+  svg.innerHTML = html;
+}
+
+renderRoster(); populateSelects();
+</script>
+</body>
+</html>
