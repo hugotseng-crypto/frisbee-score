@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UltimateScorer Pro</title>
+<style>
+/* ── THEME TOKENS ── */
+:root {
+  --bg: #F2F2F7;
+  --card: #FFFFFF;
+  --nav-bg: rgba(255,255,255,0.88);
+  --label: #000000;
+  --label2: #6C6C70;
+  --blue: #007AFF;
+  --red: #FF3B30;
+  --green: #34C759;
+  --border: rgba(60,60,67,0.18);
+  --sep: rgba(60,60,67,0.12);
+  --seg-bg: rgba(118,118,128,0.12);
+  --seg-active: #FFFFFF;
+  --half-active-bg: #F0F7FF;
+  --opp-btn-bg: #F2F2F7;
+  --input-bg: #F2F2F7;
+  --stat-card: #FFFFFF;
+  --lb-bg: #FFFFFF;
+  --sankey-bg: #FFFFFF;
+  --sankey-node: #FFFFFF;
+  --band-fill: #AEAEB2;
+  --band-label: #3C3C43;
+  --col-label: #8E8E93;
+  --empty-color: #6C6C70;
+  --ver-color: rgba(60,60,67,0.3);
+}
+body.dark {
+  --bg: #1C1C1E;
+  --card: #2C2C2E;
+  --nav-bg: rgba(28,28,30,0.92);
+  --label: #FFFFFF;
+  --label2: #98989F;
+  --border: rgba(255,255,255,0.12);
+  --sep: rgba(255,255,255,0.08);
+  --seg-bg: rgba(255,255,255,0.08);
+  --seg-active: #3A3A3C;
+  --half-active-bg: #1A2E44;
+  --opp-btn-bg: #3A3A3C;
+  --input-bg: #3A3A3C;
+  --stat-card: #2C2C2E;
+  --lb-bg: #2C2C2E;
+  --sankey-bg: #2C2C2E;
+  --sankey-node: #3A3A3C;
+  --band-fill: #636366;
+  --band-label: #EBEBF5;
+  --col-label: #98989F;
+  --empty-color: #98989F;
+  --ver-color: rgba(255,255,255,0.2);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background: var(--bg); color: var(--label); min-height: 100vh; overflow-x: hidden; transition: background .3s, color .3s; }
+
+/* NAV */
+.nav { position: sticky; top: 0; z-index: 100; background: var(--nav-bg); backdrop-filter: blur(24px); border-bottom: 0.5px solid var(--border); transition: background .3s; }
+.nav-top { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px 0; gap: 8px; }
+.nav-left { flex: 1; min-width: 0; }
+.nav-title { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-sub { font-size: 11px; color: var(--label2); font-weight: 500; }
+.nav-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.half-tag { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: var(--blue); color: white; }
+
+/* DARK TOGGLE */
+.dark-toggle { width: 44px; height: 26px; border-radius: 13px; background: var(--seg-bg); border: 0.5px solid var(--border); position: relative; cursor: pointer; transition: background .3s; flex-shrink: 0; }
+.dark-toggle.on { background: #3A3A3C; }
+.dark-toggle-knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; transition: transform .25s; font-size: 11px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.dark-toggle.on .dark-toggle-knob { transform: translateX(18px); }
+
+.seg { background: var(--seg-bg); border-radius: 9px; padding: 2px; display: flex; margin: 10px 16px; }
+.seg-btn { flex: 1; border: none; padding: 7px 4px; font-size: 13px; font-weight: 600; border-radius: 7px; background: transparent; cursor: pointer; color: var(--label2); transition: all .2s; }
+.seg-btn.active { background: var(--seg-active); color: var(--label); box-shadow: 0 1px 4px rgba(0,0,0,0.14); }
+
+/* VERSION */
+.ver { font-size: 9px; color: var(--ver-color); text-align: right; padding: 0 17px 5px; letter-spacing: 0.3px; }
+
+/* SCREENS */
+.screen { display: none; padding: 16px; padding-bottom: 40px; }
+.screen.active { display: block; }
+
+/* CARDS */
+.card { background: var(--card); border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 14px; overflow: hidden; transition: background .3s; }
+.card-p { padding: 16px; }
+
+/* SCOREBOARD */
+.scoreboard { display: flex; align-items: center; justify-content: space-around; padding: 20px 16px; }
+.score-side { text-align: center; flex: 1; }
+.score-label { font-size: 10px; font-weight: 800; letter-spacing: 1.2px; color: var(--label2); margin-bottom: 4px; }
+.score-num { font-size: 56px; font-weight: 900; letter-spacing: -2px; line-height: 1; transition: all .3s; }
+.score-num.pop { animation: scorePop .35s ease; }
+@keyframes scorePop { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 100%{transform:scale(1)} }
+.score-divider { font-size: 28px; color: var(--sep); font-weight: 300; }
+.opp-ctrl { display: flex; gap: 8px; margin-top: 8px; justify-content: center; }
+.opp-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--opp-btn-bg); font-size: 16px; font-weight: 700; cursor: pointer; color: var(--label2); }
+
+/* LINE TOGGLE */
+.line-row { display: flex; gap: 10px; padding: 14px 16px 0; }
+.line-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 13px; font-weight: 700; background: var(--input-bg); color: var(--label); cursor: pointer; transition: all .2s; letter-spacing: 0.3px; }
+.line-btn.act-o { background: var(--blue); color: white; border-color: var(--blue); }
+.line-btn.act-d { background: var(--red); color: white; border-color: var(--red); }
+
+/* HALF ROW */
+.half-row { display: flex; gap: 8px; padding: 10px 16px 14px; }
+.half-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 12px; font-weight: 700; background: var(--card); cursor: pointer; color: var(--label2); transition: all .2s; }
+.half-btn.active { background: var(--half-active-bg); border-color: var(--blue); color: var(--blue); }
+
+/* FORM */
+.custom-select { width: 100%; padding: 12px 14px; border-radius: 10px; background: var(--input-bg); border: 1px solid transparent; font-size: 15px; appearance: none; -webkit-appearance: none; margin-bottom: 10px; color: var(--label); transition: background .3s; }
+.custom-input { width: 100%; padding: 12px 14px; border-radius: 10px; background: var(--input-bg); border: 1px solid transparent; font-size: 15px; color: var(--label); transition: background .3s; }
+.custom-select:focus, .custom-input:focus { outline: none; border-color: var(--blue); }
+.btn-row { margin-top: 4px; }
+.btn-main { width: 100%; border: none; padding: 16px; border-radius: 14px; background: var(--blue); color: white; font-size: 17px; font-weight: 700; cursor: pointer; transition: all .15s; letter-spacing: -0.2px; }
+.btn-main:active { transform: scale(0.97); }
+.btn-main.d-mode { background: var(--red); }
+
+/* LOG */
+.log-item { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 0.5px solid var(--sep); }
+.log-item:last-child { border-bottom: none; }
+.log-bar { width: 4px; height: 36px; border-radius: 2px; flex-shrink: 0; margin-right: 12px; }
+.log-main { flex: 1; min-width: 0; }
+.log-scorer { font-weight: 700; font-size: 14px; }
+.log-chain { font-size: 11px; color: var(--label2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-meta { font-size: 10px; color: var(--label2); margin-top: 1px; }
+.log-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.icon-btn { border: none; background: none; cursor: pointer; font-size: 16px; padding: 6px; color: var(--label2); }
+.log-num { font-size: 11px; font-weight: 800; color: var(--label2); min-width: 22px; text-align: center; margin-right: 8px; }
+
+/* ROSTER */
+.p-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 16px 8px; }
+.p-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; color: white; }
+.p-chip-rm { background: rgba(255,255,255,0.25); border: none; border-radius: 50%; width: 16px; height: 16px; cursor: pointer; font-size: 10px; color: white; display: flex; align-items: center; justify-content: center; }
+.add-row { display: flex; gap: 8px; padding: 8px 16px 16px; }
+.add-btn { background: var(--blue); color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap; }
+
+/* STATS */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.stat-card { background: var(--stat-card); border-radius: 14px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: background .3s; }
+.stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; color: var(--label2); margin-bottom: 4px; }
+.stat-val { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
+.stat-sub { font-size: 11px; color: var(--label2); margin-top: 2px; }
+.leaderboard { background: var(--lb-bg); border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 14px; overflow: hidden; transition: background .3s; }
+.lb-header { padding: 12px 16px; border-bottom: 0.5px solid var(--sep); font-size: 12px; font-weight: 800; letter-spacing: 0.6px; color: var(--label2); }
+.lb-row { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid var(--sep); }
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { font-size: 12px; font-weight: 800; color: var(--label2); min-width: 22px; }
+.lb-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
+.lb-name { flex: 1; font-size: 14px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-count { font-size: 16px; font-weight: 800; }
+.lb-bar-wrap { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; margin: 0 10px; min-width: 30px; }
+.lb-bar { height: 5px; border-radius: 3px; transition: width .4s ease; }
+
+/* SANKEY */
+#sankey-wrap { background: var(--sankey-bg); border-radius: 16px; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 14px; transition: background .3s; padding: 8px 0; }
+#sankey-svg { display: block; }
+
+/* CSV btn */
+.csv-btn { width: 100%; background: none; border: 1.5px solid var(--blue); color: var(--blue); padding: 13px; border-radius: 14px; font-weight: 700; font-size: 15px; cursor: pointer; }
+
+/* EMPTY STATE */
+.empty { text-align: center; padding: 40px 20px; color: var(--empty-color); font-size: 14px; }
+.empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(30,30,30,0.92); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; opacity: 0; transition: all .3s; z-index: 9999; white-space: nowrap; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* EDIT HIGHLIGHT */
+.editing-highlight { animation: editPulse .6s ease; }
+@keyframes editPulse { 0%,100%{box-shadow:0 2px 8px rgba(0,0,0,0.06)} 50%{box-shadow:0 0 0 3px var(--blue)} }
+
+/* CARD SECTION HEADER */
+.card-hd { padding: 14px 16px; font-size: 13px; font-weight: 700; border-bottom: 0.5px solid var(--sep); color: var(--label); }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-top">
+    <div class="nav-left">
+      <div class="nav-title" id="disp-match">UltimateScorer Pro</div>
+      <div class="nav-sub" id="disp-team"></div>
+    </div>
+    <div class="nav-right">
+      <div class="half-tag" id="disp-half">上半場</div>
+      <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="切換深色模式">
+        <div class="dark-toggle-knob" id="toggle-knob">☀️</div>
+      </button>
+    </div>
+  </div>
+  <div class="seg">
+    <button class="seg-btn active" onclick="showTab('record',this)">記分</button>
+    <button class="seg-btn" onclick="showTab('roster',this)">名單</button>
+    <button class="seg-btn" onclick="showTab('stats',this)">統計</button>
+    <button class="seg-btn" onclick="showTab('sankey',this)">桑基圖</button>
+  </div>
+  <div class="ver">frisbee-core v1.1</div>
+</div>
+
+<!-- RECORD -->
+<div id="record-screen" class="screen active">
+  <div class="card">
+    <div class="scoreboard">
+      <div class="score-side">
+        <div class="score-label">HOME</div>
+        <div class="score-num" id="us-score">0</div>
+        <div style="font-size:11px;color:var(--label2);margin-top:4px" id="line-breakdown">O: 0 / D: 0</div>
+      </div>
+      <div class="score-divider">:</div>
+      <div class="score-side">
+        <div class="score-label">AWAY</div>
+        <div class="score-num" id="opp-score">0</div>
+        <div class="opp-ctrl">
+          <button class="opp-btn" onclick="adj(-1)">−</button>
+          <button class="opp-btn" onclick="adj(1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="line-row">
+      <button class="line-btn act-o" id="line-o" onclick="setL('O')">⚡ O-Line</button>
+      <button class="line-btn" id="line-d" onclick="setL('D')">🛡 D-Line</button>
+    </div>
+    <div class="half-row">
+      <button class="half-btn active" id="h1-btn" onclick="setHalf(1)">上半場</button>
+      <button class="half-btn" id="h2-btn" onclick="setHalf(2)">下半場</button>
+    </div>
+    <div style="padding:0 16px 16px">
+      <select class="custom-select" id="sel-p"><option value="">組織者 Hockey（選填）</option></select>
+      <select class="custom-select" id="sel-a"><option value="">助攻者 Assist（選填）</option></select>
+      <select class="custom-select" id="sel-s"><option value="">得分者 Scorer *</option></select>
+      <div class="btn-row">
+        <button class="btn-main" id="main-btn" onclick="rec()">確認得分</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="log"></div>
+</div>
+
+<!-- ROSTER -->
+<div id="roster-screen" class="screen">
+  <div class="card">
+    <div class="card-hd">比賽設定</div>
+    <div style="padding:16px">
+      <input id="in-match" type="text" class="custom-input" style="margin-bottom:10px" placeholder="比賽名稱..." oninput="updateMeta()">
+      <input id="in-team" type="text" class="custom-input" placeholder="隊伍名稱..." oninput="updateMeta()">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd">隊員名單 <span id="p-count" style="font-weight:400;color:var(--label2)"></span></div>
+    <div class="p-chips" id="p-list"></div>
+    <div class="add-row">
+      <input id="p-in" type="text" class="custom-input" style="flex:1;margin:0" placeholder="輸入姓名..." onkeydown="if(event.key==='Enter')addP()">
+      <button class="add-btn" onclick="addP()">新增</button>
+    </div>
+  </div>
+  <div class="card card-p" style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:13px;font-weight:700">重置本場比賽</div>
+      <div style="font-size:11px;color:var(--label2);margin-top:2px" id="reset-hint">清除所有得分紀錄</div>
+    </div>
+    <button id="reset-btn" onclick="resetStep()" style="background:var(--red);color:white;border:none;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">重置</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div id="stats-screen" class="screen">
+  <div id="stats-content"></div>
+</div>
+
+<!-- SANKEY -->
+<div id="sankey-screen" class="screen">
+  <div id="sankey-wrap"><svg id="sankey-svg" style="min-height:80px"></svg></div>
+  <button class="csv-btn" onclick="dl()">📥 導出 CSV 戰報</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'uscorer_v3';
+
+let state = load();
+
+function load() {
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) return JSON.parse(d);
+  } catch(e) {}
+  return {
+    players: [],
+    points: [],
+    opp: 0,
+    line: 'O',
+    half: 1,
+    matchName: '',
+    teamName: '',
+    dark: false
+  };
+}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function pColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return `hsl(${Math.abs(h) % 360},65%,${state.dark ? '60%' : '42%'})`;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function toggleDark() {
+  state.dark = !state.dark;
+  applyDark();
+  save();
+  // Redraw charts if visible
+  if (document.getElementById('stats-screen').classList.contains('active')) renderStats();
+  if (document.getElementById('sankey-screen').classList.contains('active')) drawSankey();
+}
+
+function applyDark() {
+  document.body.classList.toggle('dark', state.dark);
+  const tog = document.getElementById('dark-toggle');
+  const knob = document.getElementById('toggle-knob');
+  tog.classList.toggle('on', state.dark);
+  knob.textContent = state.dark ? '🌙' : '☀️';
+}
+
+function showTab(t, b) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.seg-btn').forEach(x => x.classList.remove('active'));
+  document.getElementById(t + '-screen').classList.add('active');
+  b.classList.add('active');
+  document.getElementById('disp-half').style.display = t === 'record' ? '' : 'none';
+  if (t === 'stats') renderStats();
+  if (t === 'sankey') drawSankey();
+}
+
+function updateMeta() {
+  state.matchName = document.getElementById('in-match').value.trim();
+  state.teamName = document.getElementById('in-team').value.trim();
+  document.getElementById('disp-match').textContent = state.matchName || 'UltimateScorer Pro';
+  document.getElementById('disp-team').textContent = state.teamName || '';
+  save();
+}
+
+function setL(l) {
+  state.line = l;
+  document.getElementById('line-o').className = 'line-btn' + (l === 'O' ? ' act-o' : '');
+  document.getElementById('line-d').className = 'line-btn' + (l === 'D' ? ' act-d' : '');
+  document.getElementById('main-btn').className = 'btn-main' + (l === 'D' ? ' d-mode' : '');
+  save();
+}
+
+function setHalf(h) {
+  state.half = h;
+  document.getElementById('h1-btn').classList.toggle('active', h === 1);
+  document.getElementById('h2-btn').classList.toggle('active', h === 2);
+  document.getElementById('disp-half').textContent = h === 1 ? '上半場' : '下半場';
+  save();
+}
+
+function adj(d) {
+  state.opp = Math.max(0, state.opp + d);
+  document.getElementById('opp-score').textContent = state.opp;
+  save();
+}
+
+function popSelects() {
+  ['sel-p','sel-a','sel-s'].forEach(id => {
+    const s = document.getElementById(id), v = s.value;
+    const placeholder = s.options[0].text;
+    s.innerHTML = `<option value="">${placeholder}</option>`;
+    state.players.forEach(p => {
+      const o = document.createElement('option');
+      o.value = o.textContent = p;
+      if (p === v) o.selected = true;
+      s.appendChild(o);
+    });
+  });
+}
+
+function rec() {
+  const p = document.getElementById('sel-p').value;
+  const a = document.getElementById('sel-a').value;
+  const s = document.getElementById('sel-s').value;
+  if (!s) { toast('⚠️ 請選擇得分者'); return; }
+  state.points.push({
+    l: state.line,
+    half: state.half,
+    p: p || '無',
+    a: a || '無',
+    s: s,
+    t: new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})
+  });
+  save();
+  updateDisplay();
+  popScoreAnim();
+  toast(`🎯 ${s} 得分！`);
+}
+
+function popScoreAnim() {
+  const el = document.getElementById('us-score');
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+function edit(i) {
+  const pt = state.points[i];
+  setL(pt.l);
+  setHalf(pt.half || 1);
+  popSelects();
+  document.getElementById('sel-p').value = pt.p === '無' ? '' : pt.p;
+  document.getElementById('sel-a').value = pt.a === '無' ? '' : pt.a;
+  document.getElementById('sel-s').value = pt.s;
+  state.points.splice(i, 1);
+  save();
+  updateDisplay();
+  const formCard = document.querySelector('#record-screen .card:nth-child(2)');
+  formCard.classList.add('editing-highlight');
+  setTimeout(() => formCard.classList.remove('editing-highlight'), 600);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast('✏️ 已載入，請修改後確認');
+}
+
+function updateDisplay() {
+  const pts = state.points;
+  document.getElementById('us-score').textContent = pts.length;
+  const oLine = pts.filter(p => p.l === 'O').length;
+  const dLine = pts.filter(p => p.l === 'D').length;
+  document.getElementById('line-breakdown').textContent = `O: ${oLine} / D: ${dLine}`;
+  ['sel-p','sel-a','sel-s'].forEach(id => document.getElementById(id).value = '');
+  renderLog();
+}
+
+function renderLog() {
+  const pts = state.points;
+  if (!pts.length) {
+    document.getElementById('log').innerHTML = '<div class="empty"><div class="empty-icon">🥏</div>尚無得分紀錄</div>';
+    return;
+  }
+  document.getElementById('log').innerHTML = '<div class="card">' +
+    pts.slice().reverse().map((pt, ri) => {
+      const i = pts.length - 1 - ri;
+      const color = pt.l === 'O' ? 'var(--blue)' : 'var(--red)';
+      const chain = [pt.p, pt.a, pt.s].filter(x => x !== '無').join(' → ');
+      return `<div class="log-item">
+        <div class="log-bar" style="background:${color}"></div>
+        <div class="log-num">#${i+1}</div>
+        <div class="log-main">
+          <div class="log-scorer">${pt.s}</div>
+          <div class="log-chain">${chain}</div>
+          <div class="log-meta">${pt.l}-Line · ${pt.half === 2 ? '下' : '上'}半場 · ${pt.t}</div>
+        </div>
+        <div class="log-actions">
+          <button class="icon-btn" onclick="edit(${i})" title="編輯">✏️</button>
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function addP() {
+  const inp = document.getElementById('p-in');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (state.players.includes(name)) { toast('⚠️ 已有此隊員'); return; }
+  state.players.push(name);
+  inp.value = '';
+  save();
+  renderRoster();
+  popSelects();
+  toast(`✅ 已新增 ${name}`);
+}
+
+function removeP(name) {
+  state.players = state.players.filter(p => p !== name);
+  save();
+  renderRoster();
+  popSelects();
+  toast(`🗑 已移除 ${name}`);
+}
+
+function renderRoster() {
+  document.getElementById('p-count').textContent = `(${state.players.length} 人)`;
+  document.getElementById('p-list').innerHTML = state.players.length
+    ? state.players.map(p =>
+        `<div class="p-chip" style="background:${pColor(p)}">
+          ${p}
+          <button class="p-chip-rm" onclick="removeP('${p}')">✕</button>
+        </div>`).join('')
+    : `<div style="padding:4px 0 8px;color:var(--label2);font-size:13px;">尚無隊員，請新增</div>`;
+}
+
+let resetPending = false, resetTimer = null;
+function resetStep() {
+  const btn = document.getElementById('reset-btn');
+  const hint = document.getElementById('reset-hint');
+  if (!resetPending) {
+    resetPending = true;
+    btn.textContent = '確認清除';
+    btn.style.background = '#8E8E93';
+    hint.textContent = '再按一次確認，3秒後取消';
+    resetTimer = setTimeout(() => {
+      resetPending = false;
+      btn.textContent = '重置';
+      btn.style.background = 'var(--red)';
+      hint.textContent = '清除所有得分紀錄';
+    }, 3000);
+  } else {
+    clearTimeout(resetTimer);
+    resetPending = false;
+    btn.textContent = '重置';
+    btn.style.background = 'var(--red)';
+    hint.textContent = '清除所有得分紀錄';
+    state.points = [];
+    state.opp = 0;
+    save();
+    document.getElementById('opp-score').textContent = '0';
+    updateDisplay();
+    toast('🔄 已重置比賽');
+  }
+}
+
+function renderStats() {
+  const pts = state.points;
+  const el = document.getElementById('stats-content');
+  if (!pts.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📊</div>尚無統計數據</div>';
+    return;
+  }
+  const scorers = {}, assisters = {}, passers = {};
+  let oCount = 0, dCount = 0, h1 = 0, h2 = 0;
+  pts.forEach(pt => {
+    scorers[pt.s] = (scorers[pt.s] || 0) + 1;
+    if (pt.a !== '無') assisters[pt.a] = (assisters[pt.a] || 0) + 1;
+    if (pt.p !== '無') passers[pt.p] = (passers[pt.p] || 0) + 1;
+    if (pt.l === 'O') oCount++; else dCount++;
+    if (pt.half === 2) h2++; else h1++;
+  });
+  const topScorer = Object.entries(scorers).sort((a,b) => b[1]-a[1])[0];
+  const oEff = pts.length > 0 ? Math.round(oCount / pts.length * 100) : 0;
+
+  const makeBoard = (title, data, color) => {
+    const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]);
+    const max = sorted[0]?.[1] || 1;
+    return `<div class="leaderboard">
+      <div class="lb-header">${title}</div>
+      ${sorted.map(([name, n], idx) => `
+        <div class="lb-row">
+          <div class="lb-rank">${idx+1}</div>
+          <div class="lb-dot" style="background:${pColor(name)}"></div>
+          <div class="lb-name">${name}</div>
+          <div class="lb-bar-wrap"><div class="lb-bar" style="width:${Math.round(n/max*100)}%;background:${color}"></div></div>
+          <div class="lb-count" style="color:${color}">${n}</div>
+        </div>`).join('')}
+    </div>`;
+  };
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">總得分</div>
+        <div class="stat-val">${pts.length}</div>
+        <div class="stat-sub">對手 ${state.opp} 分</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">O-LINE 效率</div>
+        <div class="stat-val" style="color:var(--blue)">${oEff}%</div>
+        <div class="stat-sub">O:${oCount} / D:${dCount}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">上半場</div>
+        <div class="stat-val">${h1}</div>
+        <div class="stat-sub">下半場 ${h2} 分</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">得分王</div>
+        <div class="stat-val" style="font-size:${topScorer&&topScorer[0].length>4?'16px':'20px'};letter-spacing:-0.5px">${topScorer ? topScorer[0] : '—'}</div>
+        <div class="stat-sub">${topScorer ? topScorer[1] + ' 分' : ''}</div>
+      </div>
+    </div>
+    ${makeBoard('🎯 得分排行', scorers, 'var(--blue)')}
+    ${Object.keys(assisters).length ? makeBoard('🤝 助攻排行', assisters, 'var(--green)') : ''}
+    ${Object.keys(passers).length ? makeBoard('🏃 組織排行', passers, '#FF9500') : ''}
+  `;
+}
+
+function drawSankey() {
+  const svg = document.getElementById('sankey-svg');
+  const pts = state.points;
+  const isDark = state.dark;
+
+  const nodeColor  = isDark ? '#3A3A3C' : '#FFFFFF';
+  const bandFill   = isDark ? '#636366' : '#AEAEB2';
+  const bandLabel  = isDark ? '#EBEBF5' : '#3C3C43';
+  const colLabel   = isDark ? '#98989F' : '#8E8E93';
+  const emptyFill  = isDark ? '#98989F' : '#8E8E93';
+  const ff = '-apple-system,sans-serif';
+
+  const empty = (msg) => {
+    svg.innerHTML = `<text x="50%" y="60" text-anchor="middle" font-family="${ff}" font-size="13" fill="${emptyFill}">${msg}</text>`;
+    svg.setAttribute('viewBox','0 0 300 80'); svg.setAttribute('width','300'); svg.setAttribute('height','80');
+  };
+  if (!pts.length) return empty('尚無數據');
+
+  const hasPasser = pts.some(p => p.p !== '無');
+  const hasAssist = pts.some(p => p.a !== '無');
+  if (!hasPasser && !hasAssist) return empty('無流程數據（所有得分均無組織/助攻記錄）');
+
+  const PC = 0;
+  const AC = hasPasser ? 1 : 0;
+  const SC = (hasPasser ? 1 : 0) + (hasAssist ? 1 : 0);
+  const numCols = SC + 1;
+
+  const linkMap = {};
+  const addLink = (fn, fc, tn, tc) => {
+    const k = `${fn}|${fc}>${tn}|${tc}`;
+    linkMap[k] = (linkMap[k]||0) + 1;
+  };
+  pts.forEach(pt => {
+    if (pt.p !== '無' && pt.a !== '無') {
+      addLink(pt.p, PC, pt.a, AC);
+      addLink(pt.a, AC, pt.s, SC);
+    } else if (pt.p !== '無') {
+      addLink(pt.p, PC, pt.s, SC);
+    } else if (pt.a !== '無') {
+      addLink(pt.a, AC, pt.s, SC);
+    }
+  });
+
+  const links = Object.entries(linkMap).map(([k, v]) => {
+    const [from, to] = k.split('>');
+    const [fn, fc] = from.split('|');
+    const [tn, tc] = to.split('|');
+    return { fid: from, tid: to, fn, tn, fc: +fc, tc: +tc, value: v };
+  });
+  if (!links.length) return empty('無流程數據');
+
+  const colNodes = Array.from({length: numCols}, () => []);
+  const seen = new Set();
+  links.forEach(lk => {
+    if (!seen.has(lk.fid)) { seen.add(lk.fid); colNodes[lk.fc].push(lk.fid); }
+    if (!seen.has(lk.tid)) { seen.add(lk.tid); colNodes[lk.tc].push(lk.tid); }
+  });
+
+  const nodeOut = {}, nodeIn = {};
+  links.forEach(lk => {
+    nodeOut[lk.fid] = (nodeOut[lk.fid]||0) + lk.value;
+    nodeIn[lk.tid]  = (nodeIn[lk.tid]||0)  + lk.value;
+  });
+  const nodeValue = {};
+  colNodes.forEach((ids, ci) => {
+    ids.forEach(id => {
+      nodeValue[id] = ci === SC ? (nodeIn[id]||0) : (nodeOut[id]||0);
+    });
+  });
+
+  // Responsive width: use container width, min 260
+  const wrap = document.getElementById('sankey-wrap');
+  const W = Math.max(wrap.clientWidth - 24, 260);
+
+  // Scale unitH so diagram fits on narrow screens
+  const maxNodesInCol = Math.max(...colNodes.map(c => c.length));
+  const availH = Math.min(window.innerHeight * 0.65, 500);
+  const maxTotal = Math.max(...colNodes.map(ids =>
+    ids.reduce((s, id) => s + nodeValue[id], 0)
+  ));
+  const unitH = Math.max(Math.min(Math.floor((availH - 80) / Math.max(maxTotal, 1)), 32), 14);
+  const minH = Math.max(unitH * 1.2, 34);
+  const gapY = Math.max(10, Math.min(16, Math.floor(availH / (maxNodesInCol * 4))));
+  const padTop = 36, padX = 10;
+  const nW = Math.min(90, Math.floor((W - padX*2) / numCols - 20));
+  const colSpacing = numCols > 1 ? (W - padX*2 - nW) / (numCols - 1) : 0;
+
+  const colH = colNodes.map(ids =>
+    ids.reduce((s, id) => s + Math.max(nodeValue[id]*unitH, minH) + gapY, 0) - gapY
+  );
+  const maxH = Math.max(...colH);
+
+  const nodePos = {};
+  colNodes.forEach((ids, ci) => {
+    let y = padTop + (maxH - colH[ci]) / 2;
+    const x = padX + ci * colSpacing;
+    ids.forEach(id => {
+      const h = Math.max(nodeValue[id]*unitH, minH);
+      nodePos[id] = { x, y, h };
+      y += h + gapY;
+    });
+  });
+
+  links.sort((a, b) =>
+    (nodePos[a.fid]?.y||0) - (nodePos[b.fid]?.y||0) ||
+    (nodePos[a.tid]?.y||0) - (nodePos[b.tid]?.y||0)
+  );
+
+  const srcOff = {}, tgtOff = {};
+  let html = '';
+
+  // Bands
+  links.forEach(lk => {
+    const src = nodePos[lk.fid], tgt = nodePos[lk.tid];
+    if (!src || !tgt) return;
+    const lh = Math.max(lk.value * unitH, 5);
+    const sOff = srcOff[lk.fid] || 0;
+    const tOff = tgtOff[lk.tid] || 0;
+    srcOff[lk.fid] = sOff + lh;
+    tgtOff[lk.tid] = tOff + lh;
+    const x1=src.x+nW, y1t=src.y+sOff, y1b=y1t+lh;
+    const x2=tgt.x,    y2t=tgt.y+tOff, y2b=y2t+lh;
+    const mx=(x1+x2)/2;
+    html += `<path d="M${x1},${y1t} C${mx},${y1t} ${mx},${y2t} ${x2},${y2t} L${x2},${y2b} C${mx},${y2b} ${mx},${y1b} ${x1},${y1b} Z" fill="${bandFill}" fill-opacity="0.35"/>`;
+    if (lh >= 12) {
+      const labelY = ((y1t+y1b)/2 + (y2t+y2b)/2)/2 + 4;
+      html += `<text x="${mx}" y="${labelY}" text-anchor="middle" font-size="10" font-weight="700" fill="${bandLabel}" font-family="${ff}">${lk.value}</text>`;
+    }
+  });
+
+  // Nodes
+  Object.entries(nodePos).forEach(([id, {x, y, h}]) => {
+    const name = id.split('|')[0];
+    const color = pColor(name);
+    const val = nodeValue[id];
+    html += `<rect x="${x}" y="${y}" width="${nW}" height="${h}" rx="7" fill="${nodeColor}" stroke="${color}" stroke-width="2"/>`;
+    const midY = y + h/2;
+    const fs = nW < 70 ? '10' : '12';
+    html += `<text x="${x+nW/2}" y="${midY+(h>minH+2?-4:5)}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="${color}" font-family="${ff}">${name}</text>`;
+    if (h > minH + 2) html += `<text x="${x+nW/2}" y="${midY+11}" text-anchor="middle" font-size="9" fill="${color}" opacity="0.75" font-family="${ff}">${val}次</text>`;
+  });
+
+  // Column headers
+  const colLabels = [];
+  if (hasPasser) colLabels.push('組織');
+  if (hasAssist) colLabels.push('助攻');
+  colLabels.push('得分');
+  colLabels.forEach((label, ci) => {
+    html += `<text x="${padX+ci*colSpacing+nW/2}" y="22" text-anchor="middle" font-size="10" font-weight="800" fill="${colLabel}" letter-spacing="0.5" font-family="${ff}">${label}</text>`;
+  });
+
+  const totalH = padTop + maxH + 20;
+  svg.innerHTML = html;
+  svg.setAttribute('viewBox', `0 0 ${W} ${totalH}`);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', totalH);
+}
+
+// CSV with match & team name
+function dl() {
+  const match = state.matchName || 'Unknown';
+  const team  = state.teamName  || 'Unknown';
+  let c = `\uFEFF比賽,隊伍,時間,半場,組別,組織,助攻,得分\n`;
+  state.points.forEach(p => {
+    c += `${match},${team},${p.t},${p.half === 2 ? '下半場' : '上半場'},${p.l}-Line,${p.p},${p.a},${p.s}\n`;
+  });
+  const b = new Blob([c], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = `戰報_${match}.csv`;
+  a.click();
+}
+
+function init() {
+  applyDark();
+  document.getElementById('in-match').value = state.matchName || '';
+  document.getElementById('in-team').value = state.teamName || '';
+  document.getElementById('disp-match').textContent = state.matchName || 'UltimateScorer Pro';
+  document.getElementById('disp-team').textContent = state.teamName || '';
+  document.getElementById('opp-score').textContent = state.opp;
+  setL(state.line || 'O');
+  setHalf(state.half || 1);
+  renderRoster();
+  popSelects();
+  updateDisplay();
+}
+
+// Redraw sankey on window resize for responsiveness
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (document.getElementById('sankey-screen').classList.contains('active')) drawSankey();
+  }, 200);
+});
+
+init();
+</script>
+</body>
+</html>
+
