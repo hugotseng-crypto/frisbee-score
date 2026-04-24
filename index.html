@@ -68,11 +68,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif
 .nav-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .half-tag { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: var(--blue); color: white; }
 
-/* DARK TOGGLE */
+/* TOGGLES */
 .dark-toggle { width: 44px; height: 26px; border-radius: 13px; background: var(--seg-bg); border: 0.5px solid var(--border); position: relative; cursor: pointer; transition: background .3s; flex-shrink: 0; }
 .dark-toggle.on { background: #3A3A3C; }
 .dark-toggle-knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; transition: transform .25s; font-size: 11px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .dark-toggle.on .dark-toggle-knob { transform: translateX(18px); }
+
+.switch-btn { width: 44px; height: 26px; border-radius: 13px; background: var(--seg-bg); border: 0.5px solid var(--border); position: relative; cursor: pointer; transition: background .3s; flex-shrink: 0; }
+.switch-btn.on { background: var(--green); border-color: var(--green); }
+.switch-knob { position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: white; transition: transform .25s; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.switch-btn.on .switch-knob { transform: translateX(18px); }
 
 .seg { background: var(--seg-bg); border-radius: 9px; padding: 2px; display: flex; margin: 10px 16px; }
 .seg-btn { flex: 1; border: none; padding: 7px 4px; font-size: 13px; font-weight: 600; border-radius: 7px; background: transparent; cursor: pointer; color: var(--label2); transition: all .2s; }
@@ -115,10 +120,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif
 .custom-select { width: 100%; padding: 12px 14px; border-radius: 10px; background: var(--input-bg); border: 1px solid transparent; font-size: 15px; appearance: none; -webkit-appearance: none; margin-bottom: 10px; color: var(--label); transition: background .3s; }
 .custom-input { width: 100%; padding: 12px 14px; border-radius: 10px; background: var(--input-bg); border: 1px solid transparent; font-size: 15px; color: var(--label); transition: background .3s; }
 .custom-select:focus, .custom-input:focus { outline: none; border-color: var(--blue); }
-.btn-row { margin-top: 4px; }
+.btn-row { margin-top: 4px; display: flex; flex-direction: column; gap: 8px; }
 .btn-main { width: 100%; border: none; padding: 16px; border-radius: 14px; background: var(--blue); color: white; font-size: 17px; font-weight: 700; cursor: pointer; transition: all .15s; letter-spacing: -0.2px; }
 .btn-main:active { transform: scale(0.97); }
 .btn-main.d-mode { background: var(--red); }
+.btn-main.opp-mode { background: #8E8E93; }
 
 /* LOG */
 .log-item { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 0.5px solid var(--sep); }
@@ -132,7 +138,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif
 .icon-btn { border: none; background: none; cursor: pointer; font-size: 16px; padding: 6px; color: var(--label2); }
 .log-num { font-size: 11px; font-weight: 800; color: var(--label2); min-width: 22px; text-align: center; margin-right: 8px; }
 
-/* ROSTER */
+/* ROSTER & SETTINGS */
 .p-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 16px 8px; }
 .p-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; color: white; }
 .p-chip-rm { background: rgba(255,255,255,0.25); border: none; border-radius: 50%; width: 16px; height: 16px; cursor: pointer; font-size: 10px; color: white; display: flex; align-items: center; justify-content: center; }
@@ -200,10 +206,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif
     <button class="seg-btn" onclick="showTab('stats',this)">統計</button>
     <button class="seg-btn" onclick="showTab('sankey',this)">桑基圖</button>
   </div>
-  <div class="ver">frisbee-score v1.1</div>
+  <div class="ver">frisbee-score v1.2</div>
 </div>
 
-<!-- RECORD -->
 <div id="record-screen" class="screen active">
   <div class="card">
     <div class="scoreboard">
@@ -216,7 +221,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif
       <div class="score-side">
         <div class="score-label">AWAY</div>
         <div class="score-num" id="opp-score">0</div>
-        <div class="opp-ctrl">
+        <div class="opp-ctrl" id="opp-ctrl">
           <button class="opp-btn" onclick="adj(-1)">−</button>
           <button class="opp-btn" onclick="adj(1)">+</button>
         </div>
@@ -234,11 +239,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif
       <button class="half-btn" id="h2-btn" onclick="setHalf(2)">下半場</button>
     </div>
     <div style="padding:0 16px 16px">
-      <select class="custom-select" id="sel-p"><option value="">組織者 Hockey（選填）</option></select>
-      <select class="custom-select" id="sel-a"><option value="">助攻者 Assist（選填）</option></select>
-      <select class="custom-select" id="sel-s"><option value="">得分者 Scorer *</option></select>
+      <div id="home-form">
+        <select class="custom-select" id="sel-p"><option value="">組織者 Hockey（選填）</option></select>
+        <select class="custom-select" id="sel-a"><option value="">助攻者 Assist（選填）</option></select>
+        <select class="custom-select" id="sel-s"><option value="">得分者 Scorer *</option></select>
+      </div>
+      <input type="text" class="custom-input" id="in-opp-scorer" placeholder="AWAY 得分者背號/姓名 (選填)" style="display:none; margin-bottom:10px;">
+      
       <div class="btn-row">
-        <button class="btn-main" id="main-btn" onclick="rec()">確認得分</button>
+        <button class="btn-main" id="main-btn" onclick="recHome()">確認得分</button>
+        <button class="btn-main opp-mode" id="opp-btn" onclick="recAway()" style="display:none;">確認 AWAY 得分</button>
       </div>
     </div>
   </div>
@@ -246,15 +256,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif
   <div id="log"></div>
 </div>
 
-<!-- ROSTER -->
 <div id="roster-screen" class="screen">
   <div class="card">
     <div class="card-hd">比賽設定</div>
     <div style="padding:16px">
       <input id="in-match" type="text" class="custom-input" style="margin-bottom:10px" placeholder="比賽名稱..." oninput="updateMeta()">
       <input id="in-team" type="text" class="custom-input" placeholder="隊伍名稱..." oninput="updateMeta()">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:0.5px solid var(--sep);">
+        <div>
+          <div style="font-size:14px; font-weight:600;">記錄 AWAY 得分進時間軸</div>
+          <div style="font-size:11px; color:var(--label2); margin-top:4px;">啟用後記分頁面會顯示對手得分按鈕</div>
+        </div>
+        <button class="switch-btn" id="opp-track-toggle" onclick="toggleOppTrack()">
+          <div class="switch-knob"></div>
+        </button>
+      </div>
     </div>
   </div>
+
   <div class="card">
     <div class="card-hd">隊員名單 <span id="p-count" style="font-weight:400;color:var(--label2)"></span></div>
     <div class="p-chips" id="p-list"></div>
@@ -263,21 +283,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif
       <button class="add-btn" onclick="addP()">新增</button>
     </div>
   </div>
+
   <div class="card card-p" style="display:flex;justify-content:space-between;align-items:center">
     <div>
       <div style="font-size:13px;font-weight:700">重置本場比賽</div>
-      <div style="font-size:11px;color:var(--label2);margin-top:2px" id="reset-hint">清除所有得分紀錄</div>
+      <div style="font-size:11px;color:var(--label2); margin-top:2px" id="reset-hint">清除所有得分紀錄</div>
     </div>
     <button id="reset-btn" onclick="resetStep()" style="background:var(--red);color:white;border:none;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">重置</button>
   </div>
 </div>
 
-<!-- STATS -->
 <div id="stats-screen" class="screen">
   <div id="stats-content"></div>
 </div>
 
-<!-- SANKEY -->
 <div id="sankey-screen" class="screen">
   <div id="sankey-wrap"><svg id="sankey-svg" style="min-height:80px"></svg></div>
   <button class="csv-btn" onclick="dl()">📥 導出 CSV 戰報</button>
@@ -303,7 +322,8 @@ function load() {
     half: 1,
     matchName: '',
     teamName: '',
-    dark: false
+    dark: false,
+    trackOpp: false
   };
 }
 
@@ -328,7 +348,6 @@ function toggleDark() {
   state.dark = !state.dark;
   applyDark();
   save();
-  // Redraw charts if visible
   if (document.getElementById('stats-screen').classList.contains('active')) renderStats();
   if (document.getElementById('sankey-screen').classList.contains('active')) drawSankey();
 }
@@ -339,6 +358,35 @@ function applyDark() {
   const knob = document.getElementById('toggle-knob');
   tog.classList.toggle('on', state.dark);
   knob.textContent = state.dark ? '🌙' : '☀️';
+}
+
+function toggleOppTrack() {
+  state.trackOpp = !state.trackOpp;
+  applyOppTrack();
+  save();
+}
+
+function applyOppTrack() {
+  const tog = document.getElementById('opp-track-toggle');
+  if (tog) tog.classList.toggle('on', state.trackOpp);
+
+  const mainBtn = document.getElementById('main-btn');
+  const oppBtn = document.getElementById('opp-btn');
+  const oppScorer = document.getElementById('in-opp-scorer');
+  const oppCtrl = document.getElementById('opp-ctrl');
+
+  if (state.trackOpp) {
+    mainBtn.textContent = '確認 HOME 得分';
+    oppBtn.style.display = 'block';
+    oppScorer.style.display = 'block';
+    oppCtrl.style.display = 'none';
+  } else {
+    mainBtn.textContent = '確認得分';
+    oppBtn.style.display = 'none';
+    oppScorer.style.display = 'none';
+    oppCtrl.style.display = 'flex';
+  }
+  updateDisplay();
 }
 
 function showTab(t, b) {
@@ -363,6 +411,8 @@ function setL(l) {
   state.line = l;
   document.getElementById('line-o').className = 'line-btn' + (l === 'O' ? ' act-o' : '');
   document.getElementById('line-d').className = 'line-btn' + (l === 'D' ? ' act-d' : '');
+  
+  // Dynamic button color matching the line
   document.getElementById('main-btn').className = 'btn-main' + (l === 'D' ? ' d-mode' : '');
   save();
 }
@@ -395,12 +445,14 @@ function popSelects() {
   });
 }
 
-function rec() {
+function recHome() {
   const p = document.getElementById('sel-p').value;
   const a = document.getElementById('sel-a').value;
   const s = document.getElementById('sel-s').value;
   if (!s) { toast('⚠️ 請選擇得分者'); return; }
+  
   state.points.push({
+    isOpp: false,
     l: state.line,
     half: state.half,
     p: p || '無',
@@ -410,12 +462,30 @@ function rec() {
   });
   save();
   updateDisplay();
-  popScoreAnim();
+  popScoreAnim('us-score');
   toast(`🎯 ${s} 得分！`);
 }
 
-function popScoreAnim() {
-  const el = document.getElementById('us-score');
+function recAway() {
+  const s = document.getElementById('in-opp-scorer').value.trim() || 'AWAY';
+  
+  state.points.push({
+    isOpp: true,
+    l: state.line,
+    half: state.half,
+    p: '無',
+    a: '無',
+    s: s,
+    t: new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})
+  });
+  save();
+  updateDisplay();
+  popScoreAnim('opp-score');
+  toast(`🎯 AWAY 得分！`);
+}
+
+function popScoreAnim(elementId) {
+  const el = document.getElementById(elementId);
   el.classList.remove('pop');
   void el.offsetWidth;
   el.classList.add('pop');
@@ -425,13 +495,24 @@ function edit(i) {
   const pt = state.points[i];
   setL(pt.l);
   setHalf(pt.half || 1);
-  popSelects();
-  document.getElementById('sel-p').value = pt.p === '無' ? '' : pt.p;
-  document.getElementById('sel-a').value = pt.a === '無' ? '' : pt.a;
-  document.getElementById('sel-s').value = pt.s;
+  
+  if (pt.isOpp) {
+    if (!state.trackOpp) {
+      state.trackOpp = true;
+      applyOppTrack();
+    }
+    document.getElementById('in-opp-scorer').value = pt.s === 'AWAY' ? '' : pt.s;
+  } else {
+    popSelects();
+    document.getElementById('sel-p').value = pt.p === '無' ? '' : pt.p;
+    document.getElementById('sel-a').value = pt.a === '無' ? '' : pt.a;
+    document.getElementById('sel-s').value = pt.s;
+  }
+  
   state.points.splice(i, 1);
   save();
   updateDisplay();
+  
   const formCard = document.querySelector('#record-screen .card:nth-child(2)');
   formCard.classList.add('editing-highlight');
   setTimeout(() => formCard.classList.remove('editing-highlight'), 600);
@@ -441,11 +522,19 @@ function edit(i) {
 
 function updateDisplay() {
   const pts = state.points;
-  document.getElementById('us-score').textContent = pts.length;
-  const oLine = pts.filter(p => p.l === 'O').length;
-  const dLine = pts.filter(p => p.l === 'D').length;
+  const homePts = pts.filter(p => !p.isOpp);
+  const awayPts = pts.filter(p => p.isOpp);
+  
+  document.getElementById('us-score').textContent = homePts.length;
+  document.getElementById('opp-score').textContent = state.trackOpp ? awayPts.length : state.opp;
+  
+  const oLine = homePts.filter(p => p.l === 'O').length;
+  const dLine = homePts.filter(p => p.l === 'D').length;
   document.getElementById('line-breakdown').textContent = `O: ${oLine} / D: ${dLine}`;
+  
   ['sel-p','sel-a','sel-s'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('in-opp-scorer').value = '';
+  
   renderLog();
 }
 
@@ -458,15 +547,18 @@ function renderLog() {
   document.getElementById('log').innerHTML = '<div class="card">' +
     pts.slice().reverse().map((pt, ri) => {
       const i = pts.length - 1 - ri;
-      const color = pt.l === 'O' ? 'var(--blue)' : 'var(--red)';
-      const chain = [pt.p, pt.a, pt.s].filter(x => x !== '無').join(' → ');
+      const color = pt.isOpp ? '#8E8E93' : (pt.l === 'O' ? 'var(--blue)' : 'var(--red)');
+      const scorerText = pt.isOpp ? `AWAY 得分 (${pt.s})` : pt.s;
+      const chainText = pt.isOpp ? '對手進球' : [pt.p, pt.a, pt.s].filter(x => x !== '無').join(' → ');
+      const teamText = pt.isOpp ? 'AWAY' : 'HOME';
+
       return `<div class="log-item">
         <div class="log-bar" style="background:${color}"></div>
         <div class="log-num">#${i+1}</div>
         <div class="log-main">
-          <div class="log-scorer">${pt.s}</div>
-          <div class="log-chain">${chain}</div>
-          <div class="log-meta">${pt.l}-Line · ${pt.half === 2 ? '下' : '上'}半場 · ${pt.t}</div>
+          <div class="log-scorer">${scorerText}</div>
+          <div class="log-chain">${chainText}</div>
+          <div class="log-meta">${teamText} · ${pt.l}-Line · ${pt.half === 2 ? '下' : '上'}半場 · ${pt.t}</div>
         </div>
         <div class="log-actions">
           <button class="icon-btn" onclick="edit(${i})" title="編輯">✏️</button>
@@ -538,12 +630,14 @@ function resetStep() {
 }
 
 function renderStats() {
-  const pts = state.points;
+  // Stats ONLY calculate HOME points
+  const pts = state.points.filter(p => !p.isOpp);
   const el = document.getElementById('stats-content');
   if (!pts.length) {
     el.innerHTML = '<div class="empty"><div class="empty-icon">📊</div>尚無統計數據</div>';
     return;
   }
+  
   const scorers = {}, assisters = {}, passers = {};
   let oCount = 0, dCount = 0, h1 = 0, h2 = 0;
   pts.forEach(pt => {
@@ -553,8 +647,10 @@ function renderStats() {
     if (pt.l === 'O') oCount++; else dCount++;
     if (pt.half === 2) h2++; else h1++;
   });
+  
   const topScorer = Object.entries(scorers).sort((a,b) => b[1]-a[1])[0];
   const oEff = pts.length > 0 ? Math.round(oCount / pts.length * 100) : 0;
+  const awayScore = state.trackOpp ? state.points.filter(p => p.isOpp).length : state.opp;
 
   const makeBoard = (title, data, color) => {
     const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]);
@@ -575,9 +671,9 @@ function renderStats() {
   el.innerHTML = `
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-label">總得分</div>
+        <div class="stat-label">總得分 (HOME)</div>
         <div class="stat-val">${pts.length}</div>
-        <div class="stat-sub">對手 ${state.opp} 分</div>
+        <div class="stat-sub">對手 ${awayScore} 分</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">O-LINE 效率</div>
@@ -603,7 +699,8 @@ function renderStats() {
 
 function drawSankey() {
   const svg = document.getElementById('sankey-svg');
-  const pts = state.points;
+  // Sankey ONLY uses HOME points
+  const pts = state.points.filter(p => !p.isOpp);
   const isDark = state.dark;
 
   const nodeColor  = isDark ? '#3A3A3C' : '#FFFFFF';
@@ -671,11 +768,9 @@ function drawSankey() {
     });
   });
 
-  // Responsive width: use container width, min 260
   const wrap = document.getElementById('sankey-wrap');
   const W = Math.max(wrap.clientWidth - 24, 260);
 
-  // Scale unitH so diagram fits on narrow screens
   const maxNodesInCol = Math.max(...colNodes.map(c => c.length));
   const availH = Math.min(window.innerHeight * 0.65, 500);
   const maxTotal = Math.max(...colNodes.map(ids =>
@@ -712,7 +807,6 @@ function drawSankey() {
   const srcOff = {}, tgtOff = {};
   let html = '';
 
-  // Bands
   links.forEach(lk => {
     const src = nodePos[lk.fid], tgt = nodePos[lk.tid];
     if (!src || !tgt) return;
@@ -731,7 +825,6 @@ function drawSankey() {
     }
   });
 
-  // Nodes
   Object.entries(nodePos).forEach(([id, {x, y, h}]) => {
     const name = id.split('|')[0];
     const color = pColor(name);
@@ -743,7 +836,6 @@ function drawSankey() {
     if (h > minH + 2) html += `<text x="${x+nW/2}" y="${midY+11}" text-anchor="middle" font-size="9" fill="${color}" opacity="0.75" font-family="${ff}">${val}次</text>`;
   });
 
-  // Column headers
   const colLabels = [];
   if (hasPasser) colLabels.push('組織');
   if (hasAssist) colLabels.push('助攻');
@@ -759,13 +851,13 @@ function drawSankey() {
   svg.setAttribute('height', totalH);
 }
 
-// CSV with match & team name
 function dl() {
   const match = state.matchName || 'Unknown';
   const team  = state.teamName  || 'Unknown';
-  let c = `\uFEFF比賽,隊伍,時間,半場,組別,組織,助攻,得分\n`;
+  let c = `\uFEFF比賽,隊伍,時間,半場,組別,得分方,組織,助攻,得分\n`;
   state.points.forEach(p => {
-    c += `${match},${team},${p.t},${p.half === 2 ? '下半場' : '上半場'},${p.l}-Line,${p.p},${p.a},${p.s}\n`;
+    const teamSide = p.isOpp ? 'AWAY' : 'HOME';
+    c += `${match},${team},${p.t},${p.half === 2 ? '下半場' : '上半場'},${p.l}-Line,${teamSide},${p.p},${p.a},${p.s}\n`;
   });
   const b = new Blob([c], { type: 'text/csv' });
   const a = document.createElement('a');
@@ -780,7 +872,10 @@ function init() {
   document.getElementById('in-team').value = state.teamName || '';
   document.getElementById('disp-match').textContent = state.matchName || 'UltimateScorer Pro';
   document.getElementById('disp-team').textContent = state.teamName || '';
-  document.getElementById('opp-score').textContent = state.opp;
+  
+  if(typeof state.trackOpp === 'undefined') state.trackOpp = false;
+  applyOppTrack();
+
   setL(state.line || 'O');
   setHalf(state.half || 1);
   renderRoster();
@@ -788,7 +883,6 @@ function init() {
   updateDisplay();
 }
 
-// Redraw sankey on window resize for responsiveness
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
