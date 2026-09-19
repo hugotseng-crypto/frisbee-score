@@ -1,7 +1,117 @@
 <!DOCTYPE html>
-<html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>UltimateScorer Preview</title>
-<link rel="stylesheet" href="preview.css"></head>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UltimateScorer Preview</title>
+<link rel="stylesheet" href="preview.css">
+</head>
 <body>
-<p>Loading preview.js … open this file via the website, not GitHub raw-as-text.</p>
+<div class="nav">
+  <div class="nav-top">
+    <div>
+      <div class="nav-title">UltimateScorer <span class="badge">PREVIEW</span></div>
+      <div class="nav-sub" id="metaSub">華語業餘隊場邊記分 + 賽後關係圖</div>
+    </div>
+    <button class="btn btn-light" type="button" onclick="toggleDark()">主題</button>
+  </div>
+  <div class="seg">
+    <button class="on" id="t0" type="button" onclick="tab('rec')">記分</button>
+    <button id="t1" type="button" onclick="tab('box')">箱分數</button>
+    <button id="t2" type="button" onclick="tab('map')">關係圖</button>
+    <button id="t3" type="button" onclick="tab('io')">匯出／分享</button>
+  </div>
+</div>
+<div class="wrap">
+  <div id="p-rec" class="page on">
+    <div class="card">
+      <div class="score">
+        <div style="text-align:center"><div class="nav-sub">HOME</div><div class="score-n" id="scHome">0</div></div>
+        <div style="color:var(--muted);font-size:24px">:</div>
+        <div style="text-align:center"><div class="nav-sub">AWAY</div><div class="score-n" id="scAway">0</div></div>
+      </div>
+      <div class="nav-sub" id="odBreak" style="text-align:center">O 0 · D 0 · Turn 0 · Ds 0</div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn btn-light on-o" id="bO" type="button" onclick="setLine('O')">O-Line</button>
+        <button class="btn btn-light" id="bD" type="button" onclick="setLine('D')">D-Line</button>
+        <button class="btn btn-light on-o" id="bH1" type="button" onclick="setHalf(1)">上半場</button>
+        <button class="btn btn-light" id="bH2" type="button" onclick="setHalf(2)">下半場</button>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn btn-blue" type="button" onclick="setMode('goal')">進球</button>
+        <button class="btn btn-orange" type="button" onclick="setMode('turn')">Turn</button>
+        <button class="btn btn-red" type="button" onclick="setMode('block')">Block / D</button>
+        <button class="btn btn-light" type="button" onclick="setMode('away')">AWAY 分</button>
+      </div>
+      <div id="f-goal">
+        <label class="k">組織 Hockey assist</label><select id="selP"></select>
+        <label class="k">助攻 Assist</label><select id="selA"></select>
+        <label class="k">得分 Goal</label><select id="selS"></select>
+        <button class="btn btn-blue" type="button" style="width:100%" onclick="recGoal()">確認進球</button>
+      </div>
+      <div id="f-turn" style="display:none">
+        <label class="k">失盤球員</label><select id="selTurnP"></select>
+        <label class="k">類型</label>
+        <select id="selTurnType">
+          <option value="throwaway">Throwaway</option>
+          <option value="drop">Drop</option>
+          <option value="stall">Stall</option>
+        </select>
+        <button class="btn btn-orange" type="button" style="width:100%" onclick="recTurn()">記錄 Turn</button>
+      </div>
+      <div id="f-block" style="display:none">
+        <label class="k">拿到 D 的球員</label><select id="selBlockP"></select>
+        <button class="btn btn-red" type="button" style="width:100%" onclick="recBlock()">記錄 Block</button>
+      </div>
+      <div id="f-away" style="display:none">
+        <label class="k">對手得分者（選填）</label><input id="inAway" placeholder="AWAY">
+        <button class="btn btn-light" type="button" style="width:100%" onclick="recAway()">AWAY +1</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="k">名單（Enter 新增）</div>
+      <div class="row">
+        <input id="inName" placeholder="球員姓名" style="flex:1;margin:0" onkeydown="if(event.key==='Enter')addP()">
+        <button class="btn btn-blue" type="button" onclick="addP()">新增</button>
+      </div>
+      <div id="roster" style="margin-top:8px;font-size:13px;color:var(--muted)"></div>
+    </div>
+    <div class="card"><div class="k">時間軸</div><div class="log" id="log"></div></div>
+  </div>
+  <div id="p-box" class="page">
+    <div class="card">
+      <div class="hint">+/- = G + A + D − Turn。HA 為組織。只統計 HOME。</div>
+      <div style="overflow-x:auto"><table id="boxTable"><thead><tr><th>球員</th><th class="num">G</th><th class="num">A</th><th class="num">HA</th><th class="num">D</th><th class="num">T</th><th class="num">+/-</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+  <div id="p-map" class="page">
+    <div class="card">
+      <div class="hint">進球鏈 chemistry map：組織 → 助攻 → 得分。點節點可看相關得分。</div>
+      <div class="row filter" style="margin-bottom:8px">
+        <select id="fHalf" onchange="drawSankey()" style="flex:1;margin:0"><option value="all">全場</option><option value="1">上半場</option><option value="2">下半場</option></select>
+        <select id="fLine" onchange="drawSankey()" style="flex:1;margin:0"><option value="all">O + D</option><option value="O">O-Line</option><option value="D">D-Line</option></select>
+        <select id="fPlayer" onchange="drawSankey()" style="flex:1;margin:0"><option value="all">全部球員</option></select>
+      </div>
+      <div id="sankey-wrap"><svg id="sankey-svg"></svg></div>
+      <div id="nodeDetail" class="hint" style="margin-top:8px"></div>
+    </div>
+  </div>
+  <div id="p-io" class="page">
+    <div class="card">
+      <label class="k">比賽名稱</label><input id="inMatch" oninput="saveMeta()">
+      <label class="k">隊伍名稱</label><input id="inTeam" oninput="saveMeta()">
+      <button class="btn btn-blue" type="button" style="width:100%;margin-bottom:8px" onclick="exportCsv()">匯出 CSV</button>
+      <label class="k">匯入 CSV</label>
+      <input type="file" id="csvFile" accept=".csv,text/csv" onchange="importCsv(event)">
+      <button class="btn btn-green" type="button" style="width:100%;margin:8px 0" onclick="makeShare()">產生分享連結</button>
+      <textarea id="shareBox" placeholder="分享連結" style="min-height:90px"></textarea>
+      <button class="btn btn-light" type="button" style="width:100%;margin-top:8px" onclick="openReport()">開靜態戰報</button>
+      <button class="btn btn-red" type="button" style="width:100%;margin-top:8px" onclick="resetGame()">重置本場</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 <script src="preview.js"></script>
 </body></html>
